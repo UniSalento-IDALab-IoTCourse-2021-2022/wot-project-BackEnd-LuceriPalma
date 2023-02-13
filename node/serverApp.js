@@ -1,3 +1,6 @@
+var jsonServer = require('json-server');
+var compression = require('compression');
+
 const express = require("express");
 var cors = require('cors');
 const fs = require("fs");
@@ -7,12 +10,21 @@ const execFile = require('child_process').execFile;
 
 const WebSocket = require('ws');
 const path = require('path');
-const mongodb = require('mongodb');
+// const mongodb = require('mongodb');
 
-const MongoClient = mongodb.MongoClient;
+// const MongoClient = mongodb.MongoClient;
 const app = express();
+var server = jsonServer.create();
+server.use(compression());
+
+// Add custom routes
+// server.get('/custom', function (req, res) { res.json({ msg: 'hello' }) })
+
+// Returns an Express router
+var router = jsonServer.router('./db.json');
+
 app.use(cors());
-const uri = 'mongodb://localhost/';
+// const uri = 'mongodb://localhost/';
 
 
 
@@ -70,47 +82,47 @@ app.use(
 )
 
 app.use(express.json());
-app.post("/temperature", (req, res, next) => {
-    console.log(req.body.temperature);
-    var temperature = req.body.temperature;
-    var timestamp = req.body.timestamp;
-    var sensor = req.body.sensor;
+// app.post("/temperature", (req, res, next) => {
+//     console.log(req.body.temperature);
+//     var temperature = req.body.temperature;
+//     var timestamp = req.body.timestamp;
+//     var sensor = req.body.sensor;
 
-    async function pushInDb() {
+//     async function pushInDb() {
 
-        const client = new MongoClient(uri, {useUnifiedTopology: true});
-        try {
+//         const client = new MongoClient(uri, {useUnifiedTopology: true});
+//         try {
 
-            await client.connect();
+//             await client.connect();
 
-            const database = client.db("TemperatureDB");
-            const temperatureColl = database.collection("temperature");
-            // create a document to be inserted
-            const doc = {
-                value: temperature,
-                timestamp: timestamp,
-                sensorId: sensor,
-                roomId: 'room1'
-            };
+//             const database = client.db("TemperatureDB");
+//             const temperatureColl = database.collection("temperature");
+//             // create a document to be inserted
+//             const doc = {
+//                 value: temperature,
+//                 timestamp: timestamp,
+//                 sensorId: sensor,
+//                 roomId: 'room1'
+//             };
 
-            const result = await temperatureColl.insertOne(doc);
-            console.log(`${result.insertedCount} documents were inserted with the _id: ${result.insertedId}`,);
-        } finally {
-            await client.close();
-        }
-    }
+//             const result = await temperatureColl.insertOne(doc);
+//             console.log(`${result.insertedCount} documents were inserted with the _id: ${result.insertedId}`,);
+//         } finally {
+//             await client.close();
+//         }
+//     }
 
-    pushInDb().catch(console.dir);
-    async function pushToClient(){
-        wss.clients.forEach(function each(client) {
-            if (client.readyState === WebSocket.OPEN) {
-                client.send(temperature);
-            }
-        });
-    }
-    pushToClient().catch(console.dir);
-    res.sendStatus(200)
-});
+//     pushInDb().catch(console.dir);
+//     async function pushToClient(){
+//         wss.clients.forEach(function each(client) {
+//             if (client.readyState === WebSocket.OPEN) {
+//                 client.send(temperature);
+//             }
+//         });
+//     }
+//     pushToClient().catch(console.dir);
+//     res.sendStatus(200)
+// });
 
 
 app.post("/thingy52", (req, res, next) => {
@@ -163,8 +175,8 @@ app.get('/startmodel/:id?', (req, res) => {
     var id = req.params.id;
     if (id) {
 	console.log('richiesto modello per id:' + id);
-	// const child = execFile('../../model/script_per_model.sh', [ id ], (error, stdout, stderr) => {
-		const child = execFile('../../model/script_per_model.sh',  (error, stdout, stderr) => {
+	// const child = execFile('../model/script_per_model.sh', [ id ], (error, stdout, stderr) => {
+		const child = execFile('../model/script_per_model.sh',  (error, stdout, stderr) => {
 	if (error) {
 	    console.error('stderr', stderr);
 	    throw error;
@@ -176,7 +188,7 @@ app.get('/startmodel/:id?', (req, res) => {
     else {
 	res.end('no parametro id nella richiesta.');
 	console.log('lancio modello');
-	const child = execFile('../../model/script_per_model.sh',  (error, stdout, stderr) => {
+	const child = execFile('../model/script_per_model.sh',  (error, stdout, stderr) => {
 if (error) {
 		console.error('stderr', stderr);
 		throw error;
@@ -186,6 +198,9 @@ res.end(stdout);
 	});
     }
 });
+
+app.use('/iot', express.static(__dirname + '/public'));
+app.use(router);
 
 app.get('/dashboard', async (req, res) => {
 

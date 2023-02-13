@@ -1,10 +1,13 @@
-#!/bin/zsh
+#!/bin/bash
+# on MacOS /bin/zsh
+# on unix/linux/ubuntu use /bin/bash
+
 # dal db.json ottieni un CSV
 # step 1 dal DB prendi solo alcune variabili
-cd ../../model;
-#cat ../json-server/db.json | head -n1 ;
-#cat ../json-server/db.json | jq '.potfinds[]' | jq '{ id: .id, time: .time, lat: .lat, lng: .lng, gyroX: .info[10].value, gyroY: .info[11].value, gyroZ: .info[12].value, accX: .info[13].value, accY: .info[14].value, accZ: .info[15].value }' > db_per_model.json
-cat ../json-server/db.json | jq '.potfinds[]' | jq '{ id: .id, time: .time, lat: .lat, lng: .lng, gyroX: .info[10].value, gyroY: .info[11].value, gyroZ: .info[12].value, accX: .info[13].value, accY: .info[14].value, accZ: .info[15].value }' > db_per_model.json
+cd ../model;
+#cat ../node/db.json | head -n1 ;
+#cat ../node/db.json | jq '.potfinds[]' | jq '{ id: .id, time: .time, lat: .lat, lng: .lng, gyroX: .info[10].value, gyroY: .info[11].value, gyroZ: .info[12].value, accX: .info[13].value, accY: .info[14].value, accZ: .info[15].value }' > db_per_model.json
+cat ../node/db.json | jq '.potfinds[]' | jq '{ id: .id, time: .time, lat: .lat, lng: .lng, gyroX: .info[10].value, gyroY: .info[11].value, gyroZ: .info[12].value, accX: .info[13].value, accY: .info[14].value, accZ: .info[15].value }' > db_per_model.json
 # step 2 crea un CSV
 jq -s -f filter.jq db_per_model.json > data.csv
 # step 3 correggi errori di quote
@@ -14,7 +17,7 @@ rm data.csv
 echo "input"
 cat data_input.csv
 
-echo "lancio il mdoello"
+echo "lancio il modello"
 # creato il file.. lanciamo il modello
 source ./venv/bin/activate
 python3 intervalli.py
@@ -28,21 +31,20 @@ cat results.csv|cut -f26-28 -d',' > reduced_results.csv
 cat reduced_results.csv | python -c 'import csv, json, sys; print(json.dumps([dict(r) for r in csv.DictReader(sys.stdin)]))' > reduced_results.json
 
 
-
 ###elimina potholes
-#cat ../json-server/db.json| jq '.potholes[]' | jq '.id' | xargs -L1 -I'{}' curl -XDELETE 'localhost:3000/potholes/{}'; sleep 0.05
+#cat ../json-server/db.json| jq '.potholes[]' | jq '.id' | xargs -L1 -I'{}' curl -XDELETE 'localhost:3002/potholes/{}'; sleep 0.05
 
 ### elimina potholes ogni 10
-#cat ../json-server/db.json| jq '.potholes[]' | jq '.id' | xargs -L1 -I'{}' curl -XDELETE 'localhost:3000/potholes/{}'; sleep 0.05
+#cat ../json-server/db.json| jq '.potholes[]' | jq '.id' | xargs -L1 -I'{}' curl -XDELETE 'localhost:3002/potholes/{}'; sleep 0.05
 #ricrea potholes
 
-#cat reduced_results.json|jq -r '.[]|select(.pothole=="1")' | xargs -L1 -I'{}' echo curl -XPOST 'localhost:3000/potholes/{}'
-#cat reduced_results.json|jq -r '.[]|select(.pothole=="1")' | xargs -L1 -I'{}' echo curl -XPOST 'localhost:3000/potholes/{}'
-#cat reduced_results.json|jq -c '.'| jq '.[]|select(.pothole=="1")' | jq -c | xargs -L1 -I'{}' echo curl -XPOST 'localhost:3000/potholes/{}' | curl -X POST http://localhost:3000/potholes/ -H 'Content-Type: application/json' -d {}
+#cat reduced_results.json|jq -r '.[]|select(.pothole=="1")' | xargs -L1 -I'{}' echo curl -XPOST 'localhost:3002/potholes/{}'
+#cat reduced_results.json|jq -r '.[]|select(.pothole=="1")' | xargs -L1 -I'{}' echo curl -XPOST 'localhost:3002/potholes/{}'
+#cat reduced_results.json|jq -c '.'| jq '.[]|select(.pothole=="1")' | jq -c | xargs -L1 -I'{}' echo curl -XPOST 'localhost:3002/potholes/{}' | curl -X POST http://localhost:3002/potholes/ -H 'Content-Type: application/json' -d {}
 IFS=$'\n';
 for LINE in $( cat reduced_results.json|jq -c '.'| jq '.[]|select(.pothole=="1")' | jq -c ); do
 echo $LINE;
-curl -XPOST 'localhost:3000/potholes/'   -H 'Content-Type: application/json' -d $LINE
+curl -XPOST 'localhost:3002/potholes/'   -H 'Content-Type: application/json' -d $LINE
 sleep 0.05;
 done
 
@@ -54,5 +56,5 @@ done
   #echo $LAT;
 #  LNG=$(echo $POTHOLE|cut -f2 -d',')
   #echo $LNG;
-#  curl -X POST http://localhost:3000/potholes/ -H 'Content-Type: application/json' -d "{'lat':$LAT,'lng':$LNG}"
+#  curl -X POST http://localhost:3002/potholes/ -H 'Content-Type: application/json' -d "{'lat':$LAT,'lng':$LNG}"
 #done
